@@ -2,6 +2,7 @@ require('dotenv').config();
 require('express-async-errors');
 const express = require('express');
 const app = express();
+const mongoose = require('mongoose');
 
 // extra security packages
 const helmet = require('helmet')
@@ -44,16 +45,32 @@ app.use(notFoundMiddleware);
 app.use(errorHandlerMiddleware);
 
 const port = process.env.PORT || 3000;
+let server;
 
 const start = async () => {
   try {
     await connectDB(process.env.MONGO_URI)
-    app.listen(port, () =>
+    server = app.listen(port, () =>
       console.log(`Server is listening on port ${port}...`)
     );
   } catch (error) {
     console.log(error);
   }
 };
+
+const shutDown = async () => {
+  if(server) {
+    server.close(() => {
+      console.log('server closed')
+    })
+  }
+
+  await mongoose.connection.close(false);
+  
+  process.exit(0);
+}
+
+process.on('SIGINT', shutDown);
+process.on('SIGTERM', shutDown);
 
 start();
